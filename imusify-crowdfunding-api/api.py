@@ -214,9 +214,9 @@ def create_crowdfunding(request):
             request.setResponseCode(400)
             return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
 
-    # TODO: put into queue, invoke smart contract
+    # TODO: put into queue, invoke smart contract. this is only a mock response
     return {
-        "status": "mock success response"
+        "crowdfundingAddress": "AKadKVhU43qfaLW3JGmK9MoAJ4VNp1oCdu"
     }
 
 
