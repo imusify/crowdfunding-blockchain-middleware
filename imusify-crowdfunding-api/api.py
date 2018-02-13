@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
 """
-Example of running a NEO node, receiving smart contract notifications and
-integrating a simple REST API.
-
-Smart contract events include Runtime.Notify, Runtime.Log, Storage.*,
-Execution.Success and several more. See the documentation here:
-http://neo-python.readthedocs.io/en/latest/smartcontracts.html
-
-This example requires the environment variable NEO_REST_API_TOKEN, and can
-optionally use NEO_REST_LOGFILE and NEO_REST_API_PORT.
+Imusify crowdfunding blockchain middleware
 
 Example usage (with "123" as valid API token):
 
@@ -16,17 +8,12 @@ Example usage (with "123" as valid API token):
 
 Example API calls:
 
-    $ curl localhost:8080
-    $ curl -H "Authorization: Bearer 123" localhost:8080/echo/hello123
-    $ curl -X POST -H "Authorization: Bearer 123" -d '{ "hello": "world" }' localhost:8080/echo-post
+    # Create a wallet
+    $ curl -vvv -X POST -H "Authorization: Bearer 123" -d '{ "password": "testpwd123" }' localhost:8080/wallets/create
 
+    # Get IMU balance
+    $ curl -vvv -X GET -H "Authorization: Bearer 123" localhost:8080/imuBalance/AKadKVhU43qfaLW3JGmK9MoAJ4VNp1oCdu
 
-    # Create a Wallet
-    curl -vvv -X POST -H "Authorization: Bearer 123" -d '{ "password": "testpwd123" }' localhost:8090/wallets/create
-
-The REST API is using the Python package 'klein', which makes it possible to
-create HTTP routes and handlers with Twisted in a similar style to Flask:
-https://github.com/twisted/klein
 """
 import os
 import threading
@@ -174,6 +161,22 @@ def create_wallet(request):
         "address": key.GetAddress(),
         "nep2_key": key.ExportNEP2(pwd)
     }
+
+
+@app.route('/imuBalance/<address>')
+@catch_exceptions
+@authenticated
+@json_response
+def get_imu_balance(request, address):
+    if len(address) != 34:
+        logger.warn("Wallet address '%s' is not 34 characters" % address)
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
+
+    return {
+        "balanceImu": "0.0"
+    }
+
 
 #
 # Main method which starts everything up
