@@ -14,6 +14,9 @@ Example API calls:
     # Get IMU balance
     $ curl -vvv -X GET -H "Authorization: Bearer 123" localhost:8080/imuBalance/AKadKVhU43qfaLW3JGmK9MoAJ4VNp1oCdu
 
+    # Create a crowdfunding
+    $ curl -vvv -X POST -H "Authorization: Bearer 123" -d '{ "memberAddresses": [] }' localhost:8080/crowdfunding/create
+
 """
 import os
 import threading
@@ -175,6 +178,45 @@ def get_imu_balance(request, address):
 
     return {
         "balanceImu": "0.0"
+    }
+
+
+@app.route('/crowdfunding/create', methods=['POST'])
+@catch_exceptions
+@authenticated
+@json_response
+def create_crowdfunding(request):
+    try:
+        body = json.loads(request.content.read().decode("utf-8"))
+    except JSONDecodeError as e:
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "JSON Error: %s" % str(e))
+
+    # Fail if not a password
+    if not "memberAddresses" in body:
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "No memberAddresses in request body.")
+
+    # Fail if no good password
+    memberAddresses = body["memberAddresses"]
+    # print(memberAddresses, type(memberAddresses))
+    if not isinstance(memberAddresses, list):
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "memberAddresses needs to be a list.")
+
+    if len(memberAddresses) < 1 or len(memberAddresses) > 4:
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "1-4 memberAddresses are allowed")
+
+    # Check all memberAddresses
+    for address in memberAddresses:
+        if len(address) != 34:
+            request.setResponseCode(400)
+            return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
+
+    # TODO: put into queue, invoke smart contract
+    return {
+        "status": "mock success response"
     }
 
 
