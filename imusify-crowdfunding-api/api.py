@@ -240,7 +240,7 @@ def main():
     d.start()
 
     # Hook up Klein API to Twisted reactor
-    endpoint_description = "tcp:port=%s:interface=localhost" % API_PORT
+    endpoint_description = "tcp:port=%s" % API_PORT
     endpoint = endpoints.serverFromString(reactor, endpoint_description)
     endpoint.listen(Site(app.resource()))
 
