@@ -64,7 +64,10 @@ API_AUTH_TOKEN = os.getenv("NEO_REST_API_TOKEN", None)
 if not API_AUTH_TOKEN:
     raise Exception("No NEO_REST_API_TOKEN environment variable found!")
 
-imuSmartContract = ImuSmartContract(SMART_CONTRACT_HASH, "neo-privnet.wallet", "coz")
+dir_current = os.path.dirname(os.path.abspath(__file__))
+wallet_path = os.path.join(dir_current, "neo-privnet.wallet")
+print("wallet path:", wallet_path)
+imuSmartContract = ImuSmartContract(SMART_CONTRACT_HASH, wallet_path, "coz")
 
 # Internal: setup the klein instance
 app = Klein()
