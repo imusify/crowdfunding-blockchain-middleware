@@ -19,6 +19,7 @@ Example API calls:
 
 """
 import os
+import argparse
 import threading
 import json
 from time import sleep
@@ -224,6 +225,29 @@ def create_crowdfunding(request):
 # Main method which starts everything up
 #
 def main():
+    parser = argparse.ArgumentParser()
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-m", "--mainnet", action="store_true", default=False,
+                       help="Use MainNet instead of the default TestNet")
+    group.add_argument("-p", "--privnet", action="store_true", default=False,
+                       help="Use PrivNet instead of the default TestNet")
+    group.add_argument("--coznet", action="store_true", default=False,
+                       help="Use the CoZ network instead of the default TestNet")
+    group.add_argument("-c", "--config", action="store", help="Use a specific config file")
+
+    args = parser.parse_args()
+
+    # Setup depending on command line arguments. By default, the testnet settings are already loaded.
+    if args.config:
+        settings.setup(args.config)
+    elif args.mainnet:
+        settings.setup_mainnet()
+    elif args.privnet:
+        settings.setup_privnet()
+    elif args.coznet:
+        settings.setup_coznet()
+
     # Setup the blockchain
     blockchain = LevelDBBlockchain(settings.LEVELDB_PATH)
     Blockchain.RegisterBlockchain(blockchain)
