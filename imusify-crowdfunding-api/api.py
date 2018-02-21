@@ -8,11 +8,14 @@ Example usage (with "123" as valid API token):
 
 Example API calls:
 
+    # Test
+    $ curl -vvv -H "Authorization: Bearer 123" localhost:8080/test
+
     # Create a wallet
     $ curl -vvv -X POST -H "Authorization: Bearer 123" -d '{ "password": "testpwd123" }' localhost:8080/wallets/create
 
     # Get IMU balance
-    $ curl -vvv -X GET -H "Authorization: Bearer 123" localhost:8080/imuBalance/AKadKVhU43qfaLW3JGmK9MoAJ4VNp1oCdu
+    $ curl -vvv -X GET -H "Authorization: Bearer 123" localhost:8080/imuBalance/AK2nJJpJr6o664CWJKi1QRXjqeic2zRp8y
 
     # Create a crowdfunding
     $ curl -vvv -X POST -H "Authorization: Bearer 123" -d '{ "memberAddresses": [] }' localhost:8080/crowdfunding/create
@@ -39,10 +42,11 @@ from neo.Network.api.decorators import json_response, gen_authenticated_decorato
 from neo.contrib.smartcontract import SmartContract
 
 from neocore.KeyPair import KeyPair
+from imusmartcontract import ImuSmartContract
 
 
 # Set the hash of your contract here:
-SMART_CONTRACT_HASH = "6537b4bd100e514119e3a7ab49d520d20ef2c2a4"
+SMART_CONTRACT_HASH = "95ed79af690e274ad6c5594c4496daf72f5832b6"
 
 # Default REST API port is 8080, and can be overwritten with an env var:
 API_PORT = os.getenv("NEO_REST_API_PORT", 8080)
@@ -60,33 +64,13 @@ API_AUTH_TOKEN = os.getenv("NEO_REST_API_TOKEN", None)
 if not API_AUTH_TOKEN:
     raise Exception("No NEO_REST_API_TOKEN environment variable found!")
 
-# Internal: setup the smart contract instance
-smart_contract = SmartContract(SMART_CONTRACT_HASH)
+imuSmartContract = ImuSmartContract(SMART_CONTRACT_HASH, "neo-privnet.wallet", "coz")
 
 # Internal: setup the klein instance
 app = Klein()
 
 # Internal: generate the @authenticated decorator with valid tokens
 authenticated = gen_authenticated_decorator(API_AUTH_TOKEN)
-
-#
-# Smart contract event handler for Runtime.Notify events
-#
-
-
-@smart_contract.on_notify
-def sc_notify(event):
-    logger.info("SmartContract Runtime.Notify event: %s", event)
-
-    # Make sure that the event payload list has at least one element.
-    if not len(event.event_payload):
-        return
-
-    # The event payload list has at least one element. As developer of the smart contract
-    # you should know what data-type is in the bytes, and how to decode it. In this example,
-    # it's just a string, so we decode it with utf-8:
-    logger.info("- payload part 1: %s", event.event_payload[0].decode("utf-8"))
-
 
 #
 # Custom code that runs in the background
@@ -121,19 +105,12 @@ def build_error(error_code, error_message, to_json=True):
 #
 # REST API Routes
 #
-@app.route('/')
+@app.route('/test')
 def home(request):
+    results = imuSmartContract.read_only_invoke("circulation")
+    circulation = results[0].GetBigInteger()
+    logger.info("circulation: %s", circulation)
     return "Hello world"
-
-
-@app.route('/echo/<msg>')
-@catch_exceptions
-@authenticated
-@json_response
-def echo_msg(request, msg):
-    return {
-        "echo": msg
-    }
 
 
 @app.route('/wallets/create', methods=['POST'])
@@ -177,8 +154,12 @@ def get_imu_balance(request, address):
         request.setResponseCode(400)
         return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
 
+    results = imuSmartContract.read_only_invoke("balanceOf", address)
+    balance = results[0].GetBigInteger()
+    logger.info("balance: %s", balance)
+
     return {
-        "balanceImu": "0.0"
+        "balanceImu": balance
     }
 
 
@@ -250,6 +231,7 @@ def main():
 
     # Setup the blockchain
     blockchain = LevelDBBlockchain(settings.LEVELDB_PATH)
+    # logger.info(settings.LEVELDB_PATH)
     Blockchain.RegisterBlockchain(blockchain)
     dbloop = task.LoopingCall(Blockchain.Default().PersistBlocks)
     dbloop.start(.1)
@@ -258,10 +240,14 @@ def main():
     # Disable smart contract events for external smart contracts
     settings.set_log_smart_contract_events(False)
     logger.info("Using network: %s" % settings.net_name)
+
     # Start a thread with custom code
     d = threading.Thread(target=custom_background_code)
     d.setDaemon(True)  # daemonizing the thread will kill it when the main thread is quit
     d.start()
+
+    # Start ImuSmartContract thread
+    imuSmartContract.start()
 
     # Hook up Klein API to Twisted reactor
     endpoint_description = "tcp:port=%s" % API_PORT
