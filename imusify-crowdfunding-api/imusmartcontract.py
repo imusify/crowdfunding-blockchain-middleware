@@ -2,12 +2,14 @@
 Interface to call smart contract methods
 """
 import time
+import json
 import threading
 
 from queue import Queue
 from logzero import logger
 from twisted.internet import task
 
+from neo.Wallets.utils import to_aes_key
 from neo.Settings import settings
 from neo.Core.Blockchain import Blockchain
 from neo.contrib.smartcontract import SmartContract
@@ -114,7 +116,7 @@ class ImuSmartContract(threading.Thread):
     def open_wallet(self):
         """ Open a wallet. Needed for invoking contract methods. """
         assert self.wallet is None
-        self.wallet = UserWallet.Open(self.wallet_path, self.wallet_pass)
+        self.wallet = UserWallet.Open(self.wallet_path, to_aes_key(self.wallet_pass))
         self.wallet.ProcessBlocks()
         self._walletdb_loop = task.LoopingCall(self.wallet.ProcessBlocks)
         self._walletdb_loop.start(1)
@@ -173,7 +175,6 @@ class ImuSmartContract(threading.Thread):
         if self.tx_in_progress:
             raise Exception("Transaction already in progress (%s)" % self.tx_in_progress.Hash.ToString())
 
-
         time.sleep(3)
         logger.info("wallet synced. checking if gas is available...")
 
@@ -186,4 +187,7 @@ class ImuSmartContract(threading.Thread):
         tx, fee, results, num_ops = TestInvokeContract(self.wallet, _args)
         if not tx:
             raise Exception("TestInvokeContract failed")
-        logger.info("TestInvoke result: %s", str(results))
+
+        # logger.info("TestInvoke result: %s", str(results))
+        logger.info("TestInvoke done, invoking now...")
+        result = InvokeContract(self.wallet, tx, fee)

@@ -2,9 +2,9 @@
 """
 Imusify crowdfunding blockchain middleware
 
-Example usage (with "123" as valid API token):
+Example usage (with "123" as valid API token), on the privnet:
 
-    NEO_REST_API_TOKEN="123" ./imusify-crowdfunding-api/api.py
+    NEO_REST_API_TOKEN="123" ./imusify-crowdfunding-api/api.py -p
 
 Example API calls:
 
@@ -18,7 +18,7 @@ Example API calls:
     $ curl -vvv -X GET -H "Authorization: Bearer 123" localhost:8080/imuBalance/AK2nJJpJr6o664CWJKi1QRXjqeic2zRp8y
 
     # Create a crowdfunding
-    $ curl -vvv -X POST -H "Authorization: Bearer 123" -d '{ "memberAddresses": [] }' localhost:8080/crowdfunding/create
+    $ curl -vvv -X POST -H "Authorization: Bearer 123" -d '{ "memberAddresses": ["AaLCDGQMuKdpNCkSVWVLry8MyvaXhbAXGW", "AW5C5LZjyr1jBQuZZg3kAmmri6ic32yH2q"] }' localhost:8080/crowdfunding/create
 
 """
 import os
@@ -46,7 +46,7 @@ from imusmartcontract import ImuSmartContract
 
 
 # Set the hash of your contract here:
-SMART_CONTRACT_HASH = "95ed79af690e274ad6c5594c4496daf72f5832b6"
+SMART_CONTRACT_HASH = "0xde43c873ef3d0b23e24eef87cc70a8837a4ba387"
 
 # Default REST API port is 8080, and can be overwritten with an env var:
 API_PORT = os.getenv("NEO_REST_API_PORT", 8080)
@@ -218,9 +218,16 @@ def create_crowdfunding(request):
             request.setResponseCode(400)
             return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
 
-    # TODO: put into queue, invoke smart contract. this is only a mock response
+    # Create the crowdfunding address
+    private_key = bytes(Random.get_random_bytes(32))
+    key = KeyPair(priv_key=private_key)
+    crowdfunding_address = key.GetAddress()
+
+    # Put into queue and invoke smart contract
+    imuSmartContract.add_invoke("crowdfunding_create", crowdfunding_address, *memberAddresses)
+
     return {
-        "crowdfundingAddress": "AKadKVhU43qfaLW3JGmK9MoAJ4VNp1oCdu"
+        "crowdfundingAddress": crowdfunding_address
     }
 
 
@@ -260,7 +267,7 @@ def main():
     NodeLeader.Instance().Start()
 
     # Disable smart contract events for external smart contracts
-    settings.set_log_smart_contract_events(False)
+    settings.set_log_smart_contract_events(True)
     logger.info("Using network: %s" % settings.net_name)
 
     # Start a thread with custom code
