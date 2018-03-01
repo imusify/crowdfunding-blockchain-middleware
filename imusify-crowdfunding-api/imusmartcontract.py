@@ -9,7 +9,6 @@ from queue import Queue
 from logzero import logger
 from twisted.internet import task
 
-from neo.Wallets.utils import to_aes_key
 from neo.Settings import settings
 from neo.Core.Blockchain import Blockchain
 from neo.contrib.smartcontract import SmartContract
@@ -116,7 +115,7 @@ class ImuSmartContract(threading.Thread):
     def open_wallet(self):
         """ Open a wallet. Needed for invoking contract methods. """
         assert self.wallet is None
-        self.wallet = UserWallet.Open(self.wallet_path, to_aes_key(self.wallet_pass))
+        self.wallet = UserWallet.Open(self.wallet_path, self.wallet_pass)
         self.wallet.ProcessBlocks()
         self._walletdb_loop = task.LoopingCall(self.wallet.ProcessBlocks)
         self._walletdb_loop.start(1)
