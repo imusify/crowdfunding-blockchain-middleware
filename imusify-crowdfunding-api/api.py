@@ -45,8 +45,12 @@ from neocore.KeyPair import KeyPair
 from imusmartcontract import ImuSmartContract
 
 
-# Set the hash of your contract here:
-SMART_CONTRACT_HASH = "0xde43c873ef3d0b23e24eef87cc70a8837a4ba387"
+# Set the hash of your contract here
+# Old (currently deployed on imu server):
+# SMART_CONTRACT_HASH = "95ed79af690e274ad6c5594c4496daf72f5832b6"
+
+# Dev:
+SMART_CONTRACT_HASH = "0x951250078d006932e57e3d88d57902e3c2f00ba9"
 
 # Default REST API port is 8080, and can be overwritten with an env var:
 API_PORT = os.getenv("NEO_REST_API_PORT", 8080)
@@ -166,6 +170,7 @@ def get_imu_balance(request, address):
     }
 
 
+# API to get total amount of contributions
 @app.route('/crowdfundingTotalContributions/<address>')
 @catch_exceptions
 @authenticated
@@ -185,6 +190,27 @@ def get_imu_balance(request, address):
     }
 
 
+# API to get total number of contributions
+@app.route('/crowdfundingNumContributions/<address>')
+@catch_exceptions
+@authenticated
+@json_response
+def get_imu_balance(request, address):
+    if len(address) != 34:
+        logger.warn("Wallet address '%s' is not 34 characters" % address)
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
+
+    results = imuSmartContract.read_only_invoke("crowdfunding_numcontrib", address)
+    num_contribs = results[0].GetBigInteger()
+    logger.info("crowdfunding_numcontrib: %s", num_contribs)
+
+    return {
+        "crowdfundingNumContributions": num_contribs
+    }
+
+
+# Create a crowdfunding
 @app.route('/crowdfunding/create', methods=['POST'])
 @catch_exceptions
 @authenticated
@@ -230,6 +256,38 @@ def create_crowdfunding(request):
         "crowdfundingAddress": crowdfunding_address
     }
 
+
+# REWARD call
+@app.route('/imu/reward', methods=['POST'])
+@catch_exceptions
+@authenticated
+@json_response
+def imu_reward(request):
+    try:
+        body = json.loads(request.content.read().decode("utf-8"))
+    except JSONDecodeError as e:
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "JSON Error: %s" % str(e))
+
+    # Fail if all fields provided
+    if "address" not in body:
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "Missing address.")
+
+    address = body["address"]
+    if len(address) < 34:
+        logger.warn("Wallet address '%s' is not 34 characters" % address)
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
+
+    logger.info("Reward %s with $IMU" % address)
+
+    # Call smart contract
+    # address_bytes = binascii.hexlify(address.encode())
+    # smart_contract.add_invoke("reward", address_bytes)
+    imuSmartContract.add_invoke("reward", address)
+
+    return {}
 
 #
 # Main method which starts everything up
