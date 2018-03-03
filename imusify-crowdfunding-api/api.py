@@ -310,7 +310,7 @@ def imu_reward(request):
     # Call smart contract
     # address_bytes = binascii.hexlify(address.encode())
     # smart_contract.add_invoke("reward", address_bytes)
-    imuSmartContract.add_invoke("reward", address)
+    imuSmartContract.add_invoke("reward_user", address)
 
     return {}
 
