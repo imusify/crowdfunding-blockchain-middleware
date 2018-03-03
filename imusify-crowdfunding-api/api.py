@@ -50,7 +50,7 @@ from imusmartcontract import ImuSmartContract
 # SMART_CONTRACT_HASH = "95ed79af690e274ad6c5594c4496daf72f5832b6"
 
 # Dev:
-SMART_CONTRACT_HASH = "0x951250078d006932e57e3d88d57902e3c2f00ba9"
+SMART_CONTRACT_HASH = "0x08b9f4c2e0110b8eb650f89bbcaaaaa379497a94"
 
 # Default REST API port is 8080, and can be overwritten with an env var:
 API_PORT = os.getenv("NEO_REST_API_PORT", 8080)
