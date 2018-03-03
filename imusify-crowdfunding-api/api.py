@@ -171,6 +171,31 @@ def get_imu_balance(request, address):
 
 
 # API to get total amount of contributions
+@app.route('/crowdfundingContributions/<address>')
+@catch_exceptions
+@authenticated
+@json_response
+def get_imu_balance(request, address):
+    if len(address) != 34:
+        logger.warn("Wallet address '%s' is not 34 characters" % address)
+        request.setResponseCode(400)
+        return build_error(STATUS_ERROR_JSON, "Address not 34 characters")
+
+    results = imuSmartContract.read_only_invoke("crowdfunding_total", address)
+    balance = results[0].GetBigInteger()
+    logger.info("crowdfunding_total: %s", balance)
+
+    results = imuSmartContract.read_only_invoke("crowdfunding_numcontrib", address)
+    num_contribs = results[0].GetBigInteger()
+    logger.info("crowdfunding_numcontrib: %s", num_contribs)
+
+    return {
+        "crowdfundingTotalImu": balance,
+        "crowdfundingNumContributions": num_contribs
+    }
+
+
+# API to get total amount of contributions
 @app.route('/crowdfundingTotalContributions/<address>')
 @catch_exceptions
 @authenticated
