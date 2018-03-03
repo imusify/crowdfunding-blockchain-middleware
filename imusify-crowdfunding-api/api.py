@@ -175,7 +175,7 @@ def get_imu_balance(request, address):
 @catch_exceptions
 @authenticated
 @json_response
-def get_imu_balance(request, address):
+def get_crowdfundingContributions(request, address):
     if len(address) != 34:
         logger.warn("Wallet address '%s' is not 34 characters" % address)
         request.setResponseCode(400)
@@ -200,7 +200,7 @@ def get_imu_balance(request, address):
 @catch_exceptions
 @authenticated
 @json_response
-def get_imu_balance(request, address):
+def get_crowdfundingTotalContributions(request, address):
     if len(address) != 34:
         logger.warn("Wallet address '%s' is not 34 characters" % address)
         request.setResponseCode(400)
@@ -220,7 +220,7 @@ def get_imu_balance(request, address):
 @catch_exceptions
 @authenticated
 @json_response
-def get_imu_balance(request, address):
+def get_crowdfundingNumContributions(request, address):
     if len(address) != 34:
         logger.warn("Wallet address '%s' is not 34 characters" % address)
         request.setResponseCode(400)
